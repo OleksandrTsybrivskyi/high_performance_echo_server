@@ -1,4 +1,4 @@
-# Install script for directory: /home/oleksandr/Documents/cpp_programs/high_performance_echo_server
+# Install script for directory: /mnt/f/Programming/UCU_programs/high_performance_echo_server
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/oleksandr/Documents/cpp_programs/high_performance_echo_server/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/mnt/f/Programming/UCU_programs/high_performance_echo_server/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

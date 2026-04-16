@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/oleksandr/Documents/cpp_programs/high_performance_echo_server/src/main.cpp" "CMakeFiles/MyProject.dir/src/main.cpp.o" "gcc" "CMakeFiles/MyProject.dir/src/main.cpp.o.d"
+  "/mnt/f/Programming/UCU_programs/high_performance_echo_server/src/main.cpp" "CMakeFiles/high_performance_echo_server.dir/src/main.cpp.o" "gcc" "CMakeFiles/high_performance_echo_server.dir/src/main.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.
