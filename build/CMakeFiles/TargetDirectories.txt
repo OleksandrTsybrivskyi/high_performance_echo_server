@@ -1,3 +1,0 @@
-/mnt/f/Programming/UCU_programs/high_performance_echo_server/build/CMakeFiles/high_performance_echo_server.dir
-/mnt/f/Programming/UCU_programs/high_performance_echo_server/build/CMakeFiles/edit_cache.dir
-/mnt/f/Programming/UCU_programs/high_performance_echo_server/build/CMakeFiles/rebuild_cache.dir
