@@ -1,21 +1,71 @@
-// epoll_echo_server_fixed.cpp
-
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
 #include <unistd.h>
+
 #include <cstring>
 #include <iostream>
+#include <thread>
+#include <vector>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 
 constexpr int PORT = 8080;
 constexpr int MAX_EVENTS = 1024;
 constexpr int BUFFER_SIZE = 4096;
+constexpr int THREADS = 4;
+
+// ---------------- Thread pool ----------------
+
+std::queue<int> tasks;
+std::mutex mtx;
+std::condition_variable cv;
+bool running = true;
+
+void worker() {
+    char buffer[BUFFER_SIZE];
+
+    while (running) {
+        int fd;
+
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            cv.wait(lock, [] { return !tasks.empty() || !running; });
+
+            if (!running) return;
+
+            fd = tasks.front();
+            tasks.pop();
+        }
+
+        while (true) {
+            ssize_t count = read(fd, buffer, BUFFER_SIZE);
+
+            if (count <= 0) {
+                close(fd);
+                break;
+            }
+
+            ssize_t written = 0;
+            while (written < count) {
+                ssize_t w = write(fd, buffer + written, count - written);
+                if (w <= 0) break;
+                written += w;
+            }
+        }
+    }
+}
+
+// ---------------- util ----------------
 
 int set_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+
+// ---------------- main ----------------
 
 int main() {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -40,10 +90,15 @@ int main() {
     ev.data.fd = server_fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &ev);
 
+    // start workers
+    std::vector<std::thread> pool;
+    for (int i = 0; i < THREADS; i++)
+        pool.emplace_back(worker);
+
     while (true) {
         int n = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
 
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < n; i++) {
             int fd = events[i].data.fd;
 
             if (fd == server_fd) {
@@ -53,50 +108,21 @@ int main() {
 
                     set_nonblocking(client_fd);
 
-                    epoll_event client_ev{};
-                    client_ev.events = EPOLLIN | EPOLLET;
-                    client_ev.data.fd = client_fd;
-
-                    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev);
-                }
-            } 
-            else {
-                char buffer[BUFFER_SIZE];
-
-                while (true) {
-                    ssize_t count = read(fd, buffer, BUFFER_SIZE);
-
-                    if (count == -1) {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK)
-                            break;
-                        close(fd);
-                        break;
+                    {
+                        std::lock_guard<std::mutex> lock(mtx);
+                        tasks.push(client_fd);
                     }
-
-                    if (count == 0) {
-                        close(fd);
-                        break;
-                    }
-
-                    // echo back (non-blocking safe write loop)
-                    ssize_t total_written = 0;
-
-                    while (total_written < count) {
-                        ssize_t w = write(fd, buffer + total_written, count - total_written);
-
-                        if (w == -1) {
-                            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                                break;
-                            close(fd);
-                            break;
-                        }
-
-                        total_written += w;
-                    }
+                    cv.notify_one();
                 }
             }
         }
     }
+
+    running = false;
+    cv.notify_all();
+
+    for (auto &t : pool)
+        t.join();
 
     close(server_fd);
     return 0;
